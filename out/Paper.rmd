@@ -1,0 +1,418 @@
+---
+title: "Comparing the Performance of OLS, Ridge Regression and Lasso with Big Data"
+author: "Raunak Mehrotra"
+date: "23/08/2022"
+output: pdf_document
+subtitle: "Submitted to - Prof. Dr. Lena Janys"
+toc: yes
+toc_depth: 6
+---
+
+## 1 Introduction --
+
+With the advancement of technology, high-dimensional datasets have become more prevalent than ever. The number of predictors (p) for the variable of interest denotes the dimensionality of the data, and so high-dimensional data is characterized wherein the size of p exceeds the number of observations (n), i.e., $p \gg n$. However, in such large and complex datasets generally, only a subset of predictor variables is significantly related to the response variable. By identifying and removing these irrelevant variables, we can generate a model that doesn't overfit the data and is more easily interpretable (James G et al,2021). Further, many of these predictors might be correlated to each other, that is, the dataset might suffer from multicollinearity. Multicollinearity generates unreliable estimates due to the large variance of the coefficients. The interdependence of the variables also makes it harder to identify the marginal impact of the predictors on the response variable. Hence, the precision of the model decreases which implies that it performs poorly on the given data (Chan J et al, 2022). Hence, to conduct credible data analysis, it is important to select variables that are relevant to the response variable and generate a model that improves the prediction of the same.
+
+Multiple linear regression is one of the most commonly used statistical techniques to predict the performance of a model. Due to their assumptions and simplicity to interpret the results, they are widely used in low-dimensional settings. However, in a high-dimensional setting, a linear regression model tends to perform poorly. To elaborate on the same, consider a high-dimensional linear regression model
+
+$$y=X\beta+\varepsilon ,p \gg n$$
+
+Where $y=(y_{1}+y_{2}+ \cdots + y_{n} ) \epsilon R^{n}$ is the response vector, $X= (x_{1} + x_{2} + \cdots + x_{n} ) \epsilon R^{(n X p)}$ is the covariate (predictor) matrix, $\beta \epsilon R^p$ is the vector containing unknown regression coefficients and $\varepsilon \epsilon R^n$ is the random noise vector. Also, without loss of generality, assume that the predictors and response variable are mean-centered and so there is no intercept term. In such a scenario, we know that the ordinary least square (OLS) estimate for $\beta$ is given by $\hat{\beta}^{OLS}={(X^T X)}^{-1}X^T y$. In a high-dimensional dataset, as the full rank assumption of the OLS is violated, we obtain infinitely many solutions, that is, we overfit the data (Sirimongkolkasem T. and Drikvandi R., 2019). This is further accentuated by the fact that while OLS overfits in the training data and the mean square error (MSE) decreases with an increase in the features (predictors); the same model on an independent test dataset performs extremely poorly as shown by the increase in MSE as predictors increase (James G et al,2021). Therefore, when $(p \gg n)$ or $(p \approx n)$, a simple least squares regression model is too flexible and hence overfits the data. This inability of the least squares regression to generate reliable results in a high-dimensional dataset motivates us to look for alternatives.
+
+'Shrinkage' or 'Regularization' is one of the approaches to reduce the variance and improve the predictability of the model. In this approach, a model is fit on all the predictors and the coefficient estimates shrunken towards zero. Based on the method of shrinkage adopted, a few predictors may be shrunken to exactly zero as well. Therefore, regularization can also help in variable selection. However, there's a trade-off. The fall in variance is often associated with a small rise in bias. Ridge regression, Lasso, and elastic net regression are among the few commonly used shrinkage methods (Altelbany S, 2021). 
+
+The paper hereby aims to compare the performance of the regularization methods; Ridge regression, and LASSO, on a high-dimensional dataset against the OLS. The following sections cover a brief theoretical review of the aforementioned types of shrinkage, a simulation study, and an empirical application of real data.
+
+## 2 Theory -
+
+### 2.1 Ridge Regression
+
+In the presence of non-orthogonal (correlated) explanatory variables, OLS performs poorly. The estimates tend to have high variance and even might have the wrong sign. Hoerl and Kennard (1970) developed 'Ridge Regression' as an alternative technique to control the general instability associated with the least squares estimates. Taking the linear model developed before, the ridge regression estimates are given by:
+
+$$\hat{\beta}^R=(X^T X+ \lambda I)^{-1} X^T y, \lambda \ge 0$$ 
+In other words, these ridge regression estimates are the values that solve the following Lagrangian form:
+
+$$\hat{\beta}^R=argmin_\beta[\sum_{i=1}^{n} (y_i-x_i \beta)^{2} + \lambda(\sum_{j=1}^{P} (\beta_j^{2})^{1/2})]$$
+
+Where the first term is the 'residual sum of squares (RSS)' from the OLS and the $(\sum_{j=1}^{P} \beta_j^{2})^{1/2}= || \beta ||_2$ is the $L_2$ norm shrinkage penalty on $\beta$ and $\lambda$ is the tuning parameter. When $\lambda$ equal zero, the ridge estimate is the same as that of OLS, however, as $\lambda$ increases, the shrinkage penalty grows and the estimate tends to zero. Therefore, $\lambda$ is the power of the penalty on $\beta$ (James G et al,2021). Recent studies have shown ridge regression to perform suitably in presence of highly correlated variables and since there's a higher occurrence of multicollinearity in high dimensional data, therefore, the use of ridge regression in big data study is justified (Hoerl and Kennard,1970; Algamal Z.Y et al,2015). However, it is important to note that the ridge regression does not perform variable selection. It takes all the predictors as relevant to the response variable and shrinks them towards zero but not exactly to zero such that the MSE of the estimation improves. Therefore, in a model with a high number of features, it can be difficult to interpret the ridge estimates (Tibshirani,1996).
+
+### 2.2 LASSO
+
+Glaring over the fact that ridge regression is a continuous process that generates a stable model which however can be difficult to interpret. This is because the ridge regression does not set any coefficients to zero. The 'Least Absolute Shrinkage and Selection Operator (LASSO)' is a relatively new technique proposed by Robert Tibshirani (1996). Lasso like ridge regression shrinks some of the coefficients towards zero and sets others to zero. Hence, the lasso can be said to try to perform a variable selection for easy interpretation of the model and generate a stable model like ridge regression at the same time (Tibshirani,1996). The lasso estimate $\hat{\beta}^L$ is defined by
+
+$$\hat{\beta}^L= argmin_\beta [\sum_{i=1}^{n} (y_i-x_i \beta)^2 + \lambda\sum_{j=1}^{P} (|\beta_j|) ]$$
+
+Similar to the ridge, the first term $\sum_{i=1}^{n} (y_i-x_i \beta)^2$ is the squared error loss from the OLS. However, the lasso uses $L_1$ norm shrinkage penalty on $\beta$ rather than $L_2$ as given by $\sum_{j=1}^{P} |\beta_j| = ||\beta||_{1}$. $\lambda$ like before is the tuning parameter, but it also has an additional role in reducing certain coefficients to zero. Since lasso generates sparse models (that is, the number of non-zero coefficient estimates in the model is less than the sample size $n$) this can be problematic. In presence of correlated predictor variables, lasso tends to randomly select only a few of them (Sirimongkolkasem T. and Drikvandi R., 2019). Further, in high-dimensional data, as a consequence of the generation of sparse models, although there might be more than n non-zero predictors, the predictors involved in the model are however restricted to $\le n$ (Zhou, 2013).
+
+### 2.3 Cross-Validation
+
+In this research, I use cross-validation to determine the optimal lambda value. In the empirical application section, I also use the cross-validation method to infer the performance of the predicted model. Hereby, I present a general description of cross-validation.
+
+Consider a dataset with $n$ observations. In K-fold cross-validation, the entire dataset is randomly divided into $K$ subsamples of equal size. Let the $k^{th}$ subset be the validation set, then the remaining $k-1$ subsets are the training datasets used for developing a prediction model. The fitted model is then used on the validation set, the $k^{th}$ set, to obtain the prediction error of that set. This process is repeated $K$ times, with each of the $k^{th}$ subset being used for validation and the rest to fit the model. At the end of the process, we obtain prediction errors for each of the $K$ validation sets. By taking the average of the same, we derive the cross-validation estimate of the prediction error (Ranstam J. and Cook J.A.,2018). Since MSE is commonly used as a measure of prediction performance, therefore, the cross-validation prediction error is
+
+$$CV =  \frac{1}{K}\sum_{k=1}^{K}MSE(k)$$
+
+Where $K$ is the number of subsets and $MSE(k)$ is the mean-squared error of the $k^{th}$ validation set. MSE can be defined as
+
+$$MSE(k)=  \frac{1}{n_k}  \sum_{i=1}^{n_k}(y_i-x_i \beta)^{2}$$
+
+The decision of what $K$ to use should be based on bias-variance trade-off. While, in the case of Leave-one-out cross-validation (LOOCV) where $K = n$, there is a low bias and high variance because of overlapping in training sets due to a high number of folds; for K-fold cross-validation, the variance decreases as the number of folds is less but for a slightly higher bias (James G et al,2021). We use 10-fold cross-validation from the recommended fivefold and tenfold cross-validation for application purposes (Tibshirani,1996).
+
+## 3 Simulation Study
+
+### 3.1 Data
+
+For the simulation study, I use the data available in the paper "Robust linear regression for high-dimensional data: An overview" by Peter Filzmoser and Klaus Nordhausen (2021). The paper looks at alternative regression estimators to least square regression that are robust against the challenges encountered in a high-dimensional setting. The paper looks at the performance of MM estimators, elastic net regression, and partial least squares regression to name a few. The data used is from a production process that for simplicity purposes has been centered and scaled, and also the time series characteristic has been ignored by the authors of the papers. Therefore, I can use the data without diving deep into considerations of autocorrelations or heteroskedasticity for instance. The data contains $648$ observations for $468$ predictors. Although, it's not high-dimensional data $(p \gg n)$, we can expect a large number of predictors $(p \approx n)$ to show similar issues in the least squares regression that I might have encountered for the $(p \gg n)$ case, like multicollinearity, overfitting, etc.
+
+### 3.2 Simulation Model
+
+I randomly split the data into training (75% of the observations) and a testing set (25% of the observations). While the former is used to fit the different models, the evaluation is done on the latter, that is, the testing set. For analysis purposes, I fit models of least squares regression (as described in the Introduction section), ridge regression, and lasso regression, and compare their performance based on the MSE of the testing set. I use the glmnet() package in R statistical software for the same.
+
+For the ridge regression and lasso, we require the value of the regularization (tuning) parameter. I derive lambda from $100$ values ranging from $10^{10}$ to $10^{-2}$. This is done to prevent the unexceptionally high value of lambda which might lead to a very strict model and make interpretation of it more difficult. Further, the optimal value of lambda is decided through 10-fold cross-validation as described above. The optimal value of lambda is associated with the minimum MSE obtained through cross-validation. I use the built-in cross-validation function, cv.glmnet() for calculating the lambda value.
+
+Finally, this model selection algorithm was repeated 100 times. So, we took the average of MSEs obtained from 100 repetitions, to arrive at the final value.
+
+```{r include=FALSE, message=FALSE, warning=FALSE}
+
+set.seed(101)
+
+#Setting up the simulation
+
+load("C:/Users/Raunak Mehrotra/Desktop/Raunak_CompStats_Project/data.RData")
+#install.packages("glmnet")
+library(glmnet)
+library(ggplot2)
+library(reshape2)
+library(knitr)
+
+rep = 100     #Number of repetitions
+train_MSE=matrix(NA,rep,3) #MSE on train set
+test_MSE = matrix(NA,rep,3) #MSE on test set, that is, prediction error
+colnames(test_MSE)=c("OLS","Ridge","Lasso")
+colnames(train_MSE)=c("OLS","Ridge","Lasso")
+
+
+sample = sample(1:nrow(d), size = round(0.75*nrow(d)), replace=FALSE) #Train:Test data split
+train  = d[sample,]
+test   = d[-sample,]
+y.train=train$y #Response variable in train data
+x.train=train[,-1] #Predictors in train data
+x.train=as.matrix(x.train)
+y.test=test$y #Response variable in test data
+x.test=test[,-1] #Predictors in test data
+x.test=as.matrix(x.test)
+data.train=data.frame(y.train,x.train) #Training data
+data.test = data.frame(y.test,x.test)  #Testing data
+
+grid = 10^seq(10,-2,length=100) #Length of values for lambda used in Ridge regression and LASSO
+
+```
+
+### 3.3 Results and Discussion
+
+Before, delving into the analysis of the fitted models, I graph out a Pearson correlation matrix heatmap for variables between $X100$ to $X135$ to visualize the presence of multicollinearity among the predictors. As can be seen from the plot, there exists a high degree of correlation among the $36$ predictors. Interestingly, the Pearson coefficient goes as high as $0.99$ between variables like $X103$ and $X104$, $X106$ and $X103$ and so on. The Pearson coefficient for $X110$ and $X120$ is $1.00$ and for $X120$ and $X122$ is $-0.80$. Considering that we find such a high degree of correlation between $36$ predictors, it is sufficient to extend the presence of such a high degree of correlation between the predictors in the entire dataset. Therefore, we can expect the least squares model to perform poorly and possibly overfit the data. In the simulation study, due to perfect linear relationship between several predictors, we can expect the least square model to not estimate the coefficients. However, for study purpose, I set the value of these coefficients to zero.
+
+```{r echo= FALSE  ,message= FALSE, warning=FALSE, fig.cap="Pearson Correlation Matrix Heatmap"}
+#Correlation Matrix Heatmap
+
+cor1 = round(cor(subset(d,select=X100:X135)),2) #Correlation matrix
+upper_tri = function(cor1){
+  cor1[lower.tri(cor1)]=0
+  return(cor1)
+} #Lower triangle matrix
+upper_cor1 = upper_tri(cor1) 
+meltcor = melt(upper_cor1)
+heatmap=ggplot(data=meltcor,aes(x=Var2,y=Var1,fill=value))+geom_tile(color="white")+
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1,1), space = "Lab", 
+                       name="Pearson\nCorrelation") +
+  ggtitle("Correlation Matrix Heatmap")+
+  theme_minimal()+ # minimal theme
+  theme(
+    plot.title = element_text(color="black", size=14, face="bold.italic",vjust=-1,hjust=0.5),
+    axis.text.x = element_text(angle = 90, vjust = 0.5, 
+                               size = 10, hjust = 1))+
+  coord_fixed()
+
+heatmap + 
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.border = element_blank(),
+    panel.background = element_blank(),
+    axis.ticks = element_blank(),
+    legend.justification = c(1, 0),
+    legend.position = c(0.6, 0.7),
+    legend.direction = "horizontal")+
+  guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
+                               title.position = "top", title.hjust = 0.5)) 
+
+```
+
+```{r include=  FALSE, message = FALSE, warning = FALSE}
+#Least Squares Regression
+set.seed(101)
+for (i in 1:rep){
+
+  lm.train = lm(y.train ~ x.train-1,data=data.train) #Linear regression on train data
+  lm.train$coefficients[is.na(lm.train$coefficients)]=0 #Setting 'NA' values due to multicollinearity to zero to calculate estimates
+  lm.train.predict = x.train%*%lm.train$coefficient #Response estimates on train data
+  lm.test.predict = x.test%*%lm.train$coefficient   #Response estimates on test data
+  train_MSE[i,1] = mean((lm.train.predict-y.train)^2) #MSE on train data
+  test_MSE[i,1] = mean((lm.test.predict-y.test)^2) #Prediction error
+}
+```
+
+Having established the presence of multicollinearity in the dataset, I proceed with the linear regression model. Based on the MSE calculated for the least square model from the simulation, we can conclude the same. While the MSE for the training set is `r round(mean(train_MSE[,1]),3)`, it exorbitantly increases to `r round(mean(test_MSE[,1]),3)` for the testing set. The result is similar to that of Filzmoser and Nordhausen, 2021 and shows overfitting of the training data and a poor prediction performance as suggested by the literature. Further, the presence of outliers (as seen on the test data plot) could have had an impact on the parameter estimation. The left plot shows the fitted values $\hat{y}$ versus the response $y$ on the training set, the right plot is for the test set. Evidently, the least-square model is a poor choice as shown by the stark contrast between the fitted model (using the training set) and the predicted model (using the testing set).
+
+```{r echo= FALSE, message= FALSE, warning=FALSE, fig.cap="Linear Regression Model"}
+
+
+par(mfrow=c(1,2)) #Response-Fitted values/Predicted values plot
+plot(y.train,lm.train.predict,col='green',main = "Training",xlab ="Response",ylab = "Fitted Values",lwd=2) 
+abline(lm(lm.train.predict~y.train),col='red')
+plot(y.test,lm.test.predict,col='green',main="Testing",xlab ="Response",ylab = "Prediction",lwd=2) 
+abline(lm(lm.test.predict~y.test),col='red')
+#title(sub="Linear Regression Model", line=-1,outer = TRUE)
+
+```
+
+```{r include = FALSE, message = FALSE, warning = FALSE}
+
+#Ridge regression
+
+set.seed(101)
+for (i in 1:rep){
+  
+  lambda.ridge = cv.glmnet(x.train,y.train,lambda = grid,alpha=0,intercept=FALSE) #10-fold Cross-validation for calculation optimal value of lambda 
+  opt.lambda.ridge = lambda.ridge$lambda.min #Optimal value of lambda
+  ridge.train = glmnet(x.train,y.train,lambda = grid,alpha=0,intercept=FALSE) #Ridge regression on train data using a length of values of lambda
+  ridge.train.pred = predict(ridge.train,s=opt.lambda.ridge,newx=x.train) #Response estimates on train data using optimal lambda value
+  ridge.test.pred = predict(ridge.train,s=opt.lambda.ridge,newx=x.test) #Response estimates on test data using optimal lambda value
+  train_MSE[i,2] = mean((ridge.train.pred - y.train)^2) #MSE on train data
+  test_MSE[i,2] = mean((ridge.test.pred - y.test)^2) #Prediction error
+}
+```
+
+```{r include = FALSE, message = FALSE, warning = FALSE}
+#LASSO
+
+set.seed(101)
+for (i in 1:rep){
+  
+  lambda.lasso = cv.glmnet(x.train,y.train,lambda = grid,alpha=1,intercept=FALSE) #10-fold Cross-validation for calculation optimal value of lambda
+  opt.lambda.lasso = lambda.lasso$lambda.min  #Optimal value of lambda
+  lasso.train = glmnet(x.train,y.train,lambda = grid,alpha=1,intercept=FALSE) #LASSO on train data using a length of values of lambda
+  lasso.train.pred = predict(lasso.train,s=opt.lambda.lasso,newx=x.train) #Response estimates on train data using optimal lambda value
+  lasso.test.pred = predict(lasso.train,s=opt.lambda.lasso,newx=x.test) #Response estimates on test data using optimal lambda value
+  train_MSE[i,3] = mean((lasso.train.pred - y.train)^2) #MSE on train data
+  test_MSE[i,3] = mean((lasso.test.pred - y.test)^2) #Prediction error
+}
+
+```
+
+Moving on to the ridge regression and lasso regression. The optimal value of lambda using the 10-fold cross-validation was `r round(opt.lambda.ridge,3)` and `r round(opt.lambda.lasso,3)` respectively. I used this value of lambda to fit the ridge regression and lasso regression using the R-package glmnet. While the former is achieved by setting the argument alpha=0, for the latter, we fix alpha=1. Finally, I calculate the MSE which is the average of the squared difference between true values and the predicted values of the dataset used to fit the model.
+
+But there is a caveat in the selected optimal value of lambda. Shown below is the cross-validation plot for optimizing lambda for lasso. The upper part shows the number of non-zero coefficients in the model for a given value of lambda. The left vertical dashed line is the value of $\lambda$ associated with the minimum MSE and the right vertical dashed line is the value of $\lambda$ selected by the 'one-standard-error' rule, that is, this value of $\lambda$ is within 1 standard deviation away from the minimum MSE. One can notice the large error bars for every cross-validated value of $\lambda$, even for optimal $\lambda=$ `r round(opt.lambda.lasso,3)`, possibly due to a lack of sufficient observations compared to the number of predictors. Therefore, the lasso model might not generate the true model and there might be a larger number of truly non-zero coefficients. Hence, the lasso may lead to inconsistent variable selection when there are a large number of features (Sirimongkolkasem T. and Drikvandi R., 2019).
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, fig.cap = "Cross-validation for Optimal Lambda Plot for LASSO"}
+
+par(mfrow=c(1,1))
+plot(lambda.lasso,xlim=c(-5,2)) #Cross validation for optimal lambda plot
+#title(sub="Cross-validation for Optimal Lambda Plot for LASSO", line=-1,outer = TRUE)
+#print(paste("The optimal value of lambda for lasso is",round(opt.lambda.lasso,3)))
+
+```
+
+In the case of ridge regression, the MSE for the training set is `r round(mean(train_MSE[,2]),3)` and for the testing set is `r round(mean(test_MSE[,2]),3)`. As is the case for ridge regression, all the $468$ predictors were selected by the fitted model which makes the interpretation more difficult. The difference between the MSE for the training and testing set is smaller, which indicates that the overfitting problem has been addressed to an extent (Filzmoser P and Nordhausen K, 2021). Further, based on the test set MSE of the linear model and ridge regression model, we can say the latter has a better prediction performance. However, outliers might still have had an impact on the parameter estimation. This can also be deduced from the similar plot of the fitted and predicted model for ridge regression.
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+par(mfrow=c(1,2)) #Response-Fitted values/Predicted values plot
+plot(y.train,ridge.train.pred,col='green',main = "Training",xlab ="Response",ylab = "Fitted Values",lwd=2) 
+abline(lm(ridge.train.pred~y.train),col='red')
+plot(y.test,ridge.test.pred,col='green',main="Testing",xlab ="Response",ylab = "Prediction",lwd=2) 
+abline(lm(ridge.test.pred~y.test),col='red')
+title(sub="Ridge Regression", line=-1,outer = TRUE)
+
+par(mfrow=c(1,1))
+plot(lambda.ridge,xlim=c(-5,10)) #Cross validation for optimal lambda plot
+title(sub="Cross-validation for Optimal Lambda Plot for Ridge Regression", line=-1,outer = TRUE,)
+#print(paste("The optimal value of lambda for ridge regression is",round(opt.lambda.ridge,3)))
+
+```
+
+Finally, the lasso regression. The lasso unlike ridge regression performs variable selection and we can expect the same in our simulation study. After fitting the model on the training set 100 times, I receive the following statistics. The lasso regression does indeed perform variable selection. The fitted model identifies only a few predictors as relevant (shown below) and sets the rest of the predictors exactly to zero, thus, lasso generates a sparse model. Also, the difference between the MSE for the training set, `r round(mean(train_MSE[,3]),3)`, and the testing set, `r round(mean(test_MSE[,3]),3)`, is further reduced. Clearly, overfitting is of the least concern in lasso among the three models. Similarly, the lasso is also found to have the least prediction error or equivalently the best prediction performance.
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+par(mfrow=c(1,2))  #Response-Fitted values/Predicted values plot
+plot(y.train,lasso.train.pred,col='green',main = "Training",xlab ="Response",ylab = "Fitted Values",lwd=2) 
+abline(lm(lasso.train.pred~y.train),col='red')
+plot(y.test,lasso.test.pred,col='green',main="Testing",xlab ="Response",ylab = "Prediction",lwd=2) 
+abline(lm(lasso.test.pred~y.test),col='red')
+title(sub="Lasso Regression", line=-1,outer = TRUE)
+
+outcome = coef(lasso.train, s=opt.lambda.lasso)
+kable(outcome[outcome[,1]!=0,],caption="Non-zero Predictors") #Non-zero predictors in train data using optimal lambda value
+```
+
+The following matrix provides a review of the prediction performance of the three models.
+
+```{r echo=FALSE,message = FALSE, warning = FALSE}
+#MSE summary matrix
+
+summ_MSE = matrix(c(colMeans(train_MSE),colMeans(test_MSE)),3,2)
+colnames(summ_MSE)=c("train_MSE","test_MSE")
+rownames(summ_MSE)=c("OLS","Ridge","Lasso")
+kable(round(summ_MSE,3),caption = "MSE Summary Matrix")
+```
+
+But it must be pointed out that the results of the ridge regression and lasso are not that dissimilar. Both seem to have tackled overfitting and have good predictive power, and the lasso only seems to perform better by a slight margin. The only advantage of the lasso over the ridge is its ability to identify a small number of important predictors. Also, despite performing shrinkage over a large number of coefficients, ridge regression achieved a high predictive power, which depicts the efficiency of the method for prediction on correlated datasets. Hence, if the interpretability of the model is not of utmost significance, the simulation suggests both the lasso and ridge as efficient models in a high-dimensional setting. This analysis derived from the simulation stands in corroboration with the theory as well (Tibshirani,1996).
+
+## 4 Empirical Application
+
+For empirical application of the ridge and lasso regression, I use the high-dimensional lung cancer genomic dataset from the Chemores Cohort Study. The data titled 'Real.2' has a sample size $(n)$ of $123$ and there are $944$ predictors $(p)$ in all. More information on about the dataset can be found at [Array Express](http://www.ebi.ac.uk/arrayexpress/), Dazard J. E. et al [Github](https://github.com/jedazard/PRIMsrc) and [website](http://www.primsrc.com/).
+
+In such a high-dimensional setting (as $(p \gg n)$), the ordinary least square (OLS) linear regression model breaks down and we obtain infinitely many solutions. Therefore, due to a lack of unique solution in the linear regression model, we shift our focus to the alternatives, ridge regression and lasso. We proceed in the same manner as in the simulation study, however, with a few changes.
+
+1. The training-testing split here is 60:40, instead of 75:25.
+2. While in the simulation study, the predictions were based on 100 repetitions of a model that used the lambda sequence as defined by us and the optimal value of lambda derived using 10-fold cross-validation. In the empirical application, the predictions are made using a model that has been 10-fold cross-validated. The optimal value of lambda is calculated using the 10-fold cross-validation (CV) here as well.
+3. The fitted model here has an intercept term too.
+
+Taking these changes into consideration, I run the regressions as before. The results attained are as follows.
+
+```{r include = FALSE,message = FALSE, warning = FALSE}
+set.seed(101)
+
+#Setting up the study
+
+load("C:/Users/Raunak Mehrotra/Desktop/Raunak_CompStats_Project/Real.2.rda")
+library(glmnet)
+library(knitr)
+
+x=as.matrix(Real.2)[,-1:-2] #Predictors in entire dataset
+y = Real.2$y #Response variable
+data = data.frame(y,x) #Entire dataset
+
+sample = sample(1:nrow(data), size = round(0.60*nrow(data)), replace=FALSE) #Train:Test data split
+train  = data[sample,]
+test   = data[-sample,]
+x.train = model.matrix(y~.,data=train)[,-1] #Predictors in train data
+x.test = model.matrix(y~.,data=test)[,-1] #Predictors in test data
+y.train = train$y #Response variable in train data
+y.test = test$y #Response variabe in test data
+data.train=data.frame(y.train,x.train) #Training data
+data.test = data.frame(y.test,x.test) #Test data
+
+grid = 10^seq(10,-2,length=100) #Length of values for lambda used in Ridge regression and LASSO
+
+```
+
+```{r include = FALSE,message = FALSE, warning = FALSE}
+#Ridge regression
+
+set.seed(101)
+
+model.ridge = glmnet(x,y,alpha=0) #Ridge regression on entire dataset using a length of values of lambda chosen by the function
+plot(model.ridge,xvar="lambda") #Coefficients shrinkage path
+title(sub="Coefficients shrinkage path", line=-1,outer = TRUE)
+
+cv.ridge = cv.glmnet(x.train,y.train,lambda = grid,alpha=0) #10-fold Cross-validation for ridge regression model and calculation optimal value of lambda on train data
+opt.lambda_ridge = cv.ridge$lambda.min #Optimal value of lambda
+round(opt.lambda_ridge,3)
+
+ridge.train.pred = predict(cv.ridge,s=opt.lambda_ridge,newx=x.train) #Response estimates on train data using optimal lambda value
+Ridge_train_MSE = mean((ridge.train.pred - y.train)^2) #MSE on train data
+round(Ridge_train_MSE,3)
+ridge.test.pred = predict(cv.ridge,s=opt.lambda_ridge,newx=x.test) #Response estimates on test data using optimal lambda value
+Ridge_test_MSE = mean((ridge.test.pred - y.test)^2) #Prediction error
+round(Ridge_test_MSE,3)
+```
+
+The ridge regression keeps all the predictions in the fitted model. However, as the value of the tuning parameter increases, the coefficients shrink further to zero. The optimal value of lambda is found to be `r round(opt.lambda_ridge,3)`. Shown below is the 10-fold cross-validated plot of $\lambda$ for ridge regression. The description for the plot is similar to that for lasso that I have presented in the simulation study.
+
+```{r echo = FALSE,message = FALSE, warning = FALSE, fig.cap="Cross validation for optimal lambda plot for Ridge Regression"}
+
+plot(cv.ridge) #Cross validation for optimal lambda plot
+#title(sub="Cross validation for optimal lambda plot for Ridge Regression", line=-1,outer = TRUE)
+```
+
+The MSE on training set is found to be `r round(Ridge_train_MSE,3)` and the prediction error is `r round(Ridge_test_MSE,3)`. Overfitting seems to be correctly addressed as the error rate on both of the sets are in the same order of magnitude.
+
+```{r include = FALSE, warning=FALSE, message=FALSE}
+#LASSO
+
+set.seed(101)
+
+model.lasso = glmnet(x,y,alpha=1) #LASSO on entire dataset using a length of values of lambda chosen by the function
+cv.lasso1 = cv.glmnet(x,y,lambda = grid,alpha=1) #10-fold Cross-validation for calculation of optimal value of lambda on entire data
+opt.lambda_lasso1 = cv.lasso1$lambda.min #Optimal value of lambda
+```
+
+The lasso regression on the other hand performs variable selection. Shown below is the coefficient path plot for the lasso on the entire data of Real.2. Each coloured line represents a predictor in the model and tracks the change in its value for different values of $\lambda$. As the value of $\lambda$ decreases (right to left), more and more coefficients enter the model. Also, the coefficient size increases with decrease in $\lambda$. The axis above the plot shows the number of predictors in the model for different values of $\lambda$. The vertical dashed line represents the final lasso model that has been selected using the optimal value of lambda derived from the 10-fold CV. The optimal value of lambda is `r round(opt.lambda_lasso1,3)`. Based on this value and the using the entire dataset, we find that only $5$ predictors and an intercept are included in the generated sparse model.
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+plot(model.lasso,xvar="lambda") #Coefficients shrinkage path
+abline(v =log(opt.lambda_lasso1),col="Black",lty=2) #Selected model based on optimal lambda value
+title(sub="Coefficients shrinkage path", line=-1,outer = TRUE)
+outcome1 = coef(model.lasso, s=opt.lambda_lasso1)
+kable(outcome1[outcome1[,1]!=0,],caption="Non-zero Predictors") #Non-zero predictors in entire data using optimal lambda value
+```
+
+```{r include= FALSE, warning=FALSE, message= FALSE}
+
+cv.lasso = cv.glmnet(x.train,y.train,lambda = grid,alpha=1) #10-fold Cross-validation for LASSO model and calculation optimal value of lambda on train data
+opt.lambda_lasso = cv.lasso$lambda.min #Optimal value of lambda
+round(opt.lambda.lasso,3)
+plot(cv.lasso,xlim=c(-5,2))  #Cross validation for optimal lambda plot
+title(sub="Cross validation for optimal lambda plot", line=-1,outer = TRUE)
+
+lasso.train.pred = predict(cv.lasso,s=opt.lambda_lasso,newx=x.train) #Response estimates on train data using optimal lambda value
+Lasso_train_MSE = mean((lasso.train.pred - y.train)^2) #MSE on train data
+round(Lasso_train_MSE,3)
+lasso.test.pred = predict(cv.lasso,s=opt.lambda_lasso,newx=x.test) #Response estimates on test data using optimal lambda value
+Lasso_test_MSE = mean((lasso.test.pred - y.test)^2) #Prediction error
+round(Lasso_test_MSE,3)
+
+```
+
+Finally, we split the data into train and test set and generate the 10-fold CV fitted model using the train set. The optimal value of lambda in this case is `r round(opt.lambda_lasso,3)`. The error rates are thereby calculated using the fitted model. While, the MSE on training set is `r round(Lasso_train_MSE,3)`, the MSE on test set is found to be `r round(Lasso_test_MSE,3)`.
+
+Both the ridge regression and lasso, perform well in predicting the model as seen by their very similar prediction error rate and their ability to address overfitting. This result is clearly in line with our result from the simulation study and the existing literature. Therefore, the only added advantage that can be deemed in favour of lasso is its ease of interpretability. However, while considering the sparse model, we should keep the issues with generating a sparse model using lasso in a high-dimensional setting, as discussed before in mind.
+
+## 5 Conclusion
+
+As data becomes more complex, the dependence on least squares linear regression needs to be reduced. This is primarily because of the inability of the least squares model to perform efficiently and generate reliable results. In a high-dimension setting, which has now become prevalent than ever, such a model simply breaks down and is unable to provide a unique solution. Ridge regression and LASSO have come up as the plausible alternative shrinkage techniques to develop models in a high-dimensional data. While, prediction accuracy has been the primary aim of ridge regression, the lasso in addition to that also performs variable selection. This is helpful as it generates a sparse model with only relevant variables out of a large number of variables in the dataset whose significance in predicting the response variable is not known beforehand. Therefore, lasso brings forth an ease of interpretability of the model unlike the ridge regression wherein all the predictors are taken as relevant to the response variable and involved in the model.
+
+The simulation study and empirical application were performed on the R statistical software, with the primary use of glmnet() package. 10-fold CV was used to calculate optimal value of lambda as prescribed in the literature. The results from both the analysis were in accordance to the theory. The ridge regression and lasso, both were found to efficient in predicting the model, however, the interpretability of the former is a big drawback for it. On the other hand, although lasso produced sparse, easily interpretable models, but a major concern that came up with it was the possibility of the lasso to not include all relevant non-zero predictors in the model when performed on a high-dimensional data.
+
+As more focus is being given to the two techniques, alternatives like elastic net regression in shrinkage technique and Principal Components Regression (PCR) in dimension reduction methods have gained relevance as well. Finally, this study can be extended to examine the performance of aforementioned alternatives in linear and logistic regression models for instance.
+
+## 6 References
+
+*Algamal, Z. Y., Lee M. H. (2015). Applying Penalized Binary Logistic Regression with Correlation Based Elastic Net for Variables Selection. Journal of Modern Applied Statistical Methods. 14(1), 168-179. [DOI: 10.22237/jmasm/1430453640](http://digitalcommons.wayne.edu/jmasm/vol14/iss1/15?utm_source=digitalcommons.wayne.edu%2Fjmasm%2Fvol14%2Fiss1%2F15&utm_medium=PDF&utm_campaign=PDFCoverPages)
+
+*Altelbany, S. (2021). Evaluation of Ridge, Elastic Net and Lasso Regression Methods in Precedence of Multicollinearity Problem: A Simulation Study. Journal of Applied Economics and Business Studies, 5(1), 131-142. [https://doi.org/10.34260/jaebs.517](https://doi.org/10.34260/jaebs.517)
+
+*Chan, J. Y.-L., Leow, S. M. H., Bea, K. T., Cheng, W. K., Phoong, S. W., Hong, Z.-W., & Chen, Y.-L. (2022). Mitigating the Multicollinearity Problem and Its Machine Learning Approach: A Review. Mathematics, 10(8), 1283. MDPI AG. Retrieved from [http://dx.doi.org/10.3390/math10081283](http://dx.doi.org/10.3390/math10081283)
+
+*Dazard, J.-E., Rao, J. S., LeBlanc, M., Choe, M., & Duong, T. Bump hunting by patient rule induction method. PRIMsrc. Retrieved from [http://www.primsrc.com/](http://www.primsrc.com/)
+ 
+*Dazard, J.-E. Jedazard/PRIMSRC: Bump hunting by patient rule induction method for survival, regression and classification in a multivariate setting and in high-dimensional data. GitHub. Retrieved from [https://github.com/jedazard/PRIMsrc](https://github.com/jedazard/PRIMsrc)
+
+*Embl-Ebi. Array express. EBI. [http://www.ebi.ac.uk/arrayexpress/](http://www.ebi.ac.uk/arrayexpress/)
+
+*Filzmoser, P, Nordhausen, K. (2021). Robust linear regression for high-dimensional data: An overview. WIREs Comput Stat.  13:e1524. [https://doi.org/10.1002/wics.1524](https://doi.org/10.1002/wics.1524)
+
+*Hoerl, A. E., & Kennard, R. W. (1970). Ridge regression: Biased estimation for nonorthogonal problems. Technometrics, 12(1), 55-67. DOI: [10.1080/00401706.1970.10488634](https://doi.org/10.1080/00401706.1970.10488634)
+
+*James, G., Witten, D., Hastie, T. J., & Tibshirani, R. J. (2021). An introduction to statistical learning: With applications in R. Springer. [https://doi.org/10.1007/978-1-4614-7138-7](https://doi.org/10.1007/978-1-4614-7138-7)
+
+*Ranstam, J., Cook J. A. (2018). LASSO regression. British Journal of Surgery, 105(10), Page 1348, [https://doi.org/10.1002/bjs.10895](https://doi.org/10.1002/bjs.10895)
+ 
+*Sirimongkolkasem, T., Drikvandi, R. (2019). On Regularisation Methods for Analysis of High Dimensional Data. Ann. Data. Sci. 6, 737–763. [https://doi.org/10.1007/s40745-019-00209-4](https://doi.org/10.1007/s40745-019-00209-4)
+
+*Tibshirani, R. (1996). Regression Shrinkage and Selection via the Lasso. Journal of the Royal Statistical Society. Series B (Methodological), 58(1), 267–288. [http://www.jstor.org/stable/2346178](http://www.jstor.org/stable/2346178)
+
+*Zhou, D. X. (2013). On grouping effect of elastic net. Statistics and Probability Letters, 83(9), 2108-2112. [https://econpapers.repec.org/scripts/redir.pf?u=https%3A%2F%2Fdoi.org%2F10.1016%252Fj.spl.2013.05.014;h=repec:eee:stapro:v:83:y:2013:i:9:p:2108-2112](https://econpapers.repec.org/scripts/redir.pf?u=https%3A%2F%2Fdoi.org%2F10.1016%252Fj.spl.2013.05.014;h=repec:eee:stapro:v:83:y:2013:i:9:p:2108-2112)
